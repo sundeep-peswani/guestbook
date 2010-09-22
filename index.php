@@ -16,7 +16,6 @@ function configure() {
 	} catch (PDOException $e) {
 		halt('Connection failed: '.$e);
 	}
-	$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_WARNING);
 	option('db', $db);
 	
 	# load settings
@@ -34,6 +33,14 @@ function configure() {
 	
 	# set timezone
 	date_default_timezone_set(option('setting_timezone'));
+	
+	# set debug
+	option('debug', intval(option('setting_debug')));
+	if (option('debug')) {
+		option('env', ENV_DEVELOPMENT);
+		$db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_WARNING);
+		option('db', $db);
+	}
 }
 
 function before() {
@@ -46,21 +53,57 @@ function before() {
 
 dispatch('/admin', 'admin_index');
 	function admin_index() {
-		$entries = find_all();
-		set($entries, $entries);
-		return html('posts/admin/index.html.php');
+		if (!is_admin()) {
+			redirect_to('/admin/login');
+		}
+		
+		$entries = guestbook_load(null, -1, 0);
+		set('entries', $entries);
+		return html('admin/index.html.php');
+	}
+dispatch('/admin/:id/approve', 'admin_approve');
+	function admin_approve() {
+		if (!is_admin()) {
+			redirect_to('/admin/login');
+		}
+
+		return json(array(
+			'success' => guestbook_approve(intval(params('id')))
+		));
+	}
+dispatch('/admin/:id/disapprove', 'admin_disapprove');
+	function admin_disapprove() {
+		if (!is_admin()) {
+			redirect_to('/admin/login');
+		}
+
+		return json(array(
+			'success' => guestbook_disapprove(intval(params('id')))
+		));
+	}
+dispatch('/admin/:id/delete', 'admin_delete');
+	function admin_delete() {
+		if (!is_admin()) {
+			redirect_to('/admin/login');
+		}
+
+		return json(array(
+			'success' => guestbook_delete(intval(params('id')))
+		));
+	}
+dispatch('/admin/login', 'admin_login_page');
+	function admin_login_page() {
+		return html('admin/login.html.php');
 	}
 dispatch_post('/admin/login', 'admin_login');
 	function admin_login() {
+		if (admin_authenciate($_POST['user'])) {
+			redirect_to('/admin');
+		}
 		
-	}
-dispatch_post('/admin/:id/approve', 'admin_approve');
-	function admin_approve() {
-	
-	}
-dispatch_post('/admin/:id/disapprove', 'admin_disapprove');
-	function admin_disapprove() {
-	
+		flash('error', 'Invalid login credentials. Please try again.');
+		set('user', $_POST['user']);
+		return html('admin/login.html.php');
 	}
 
 dispatch('/new', 'guestbook_new');

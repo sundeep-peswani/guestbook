@@ -5,6 +5,18 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <title>Admin</title>
+<?=render('admin/admin.js.php', null, array())?>
+<style type="text/css">
+	.approved {
+		color: green;
+	}
+	.unapproved {
+		color: black;
+	}
+	.disapproved {
+		color: red;
+	}
+</style>
 </head>
 <body>
 <div id="content">

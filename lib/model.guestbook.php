@@ -1,29 +1,36 @@
 <?php
 
 function debug($stmt) {
-	$env = option('env');
-	if ($env !== ENV_DEVELOPMENT) return;
+	$debug = option('debug');
+	if (!$debug) return;
 	
-	echo '<pre>';
+	print '<pre>';
 	$stmt->debugDumpParams();
-	echo '</pre>';
+	print $stmt->errorCode();
+	print "\n";
+	print_r($stmt->errorInfo());
+	print '</pre>';
 }
 
 function guestbook_load($approved = null, $limit = 10, $offset = 0) {
 	$db = option('db');
 	if ($approved === null) {
-		$sql = 'SELECT *, UNIX_TIMESTAMP(`ctime`) AS cunixtime FROM posts ORDER BY ctime DESC LIMIT :limit OFFSET :offset';
+		$sql = 'SELECT *, UNIX_TIMESTAMP(`ctime`) AS cunixtime FROM posts ORDER BY ctime DESC';
 	} else {
-		$sql = 'SELECT *, UNIX_TIMESTAMP(`ctime`) AS cunixtime FROM posts WHERE approved = :approved ORDER BY ctime DESC LIMIT :limit OFFSET :offset';
+		$sql = 'SELECT *, UNIX_TIMESTAMP(`ctime`) AS cunixtime FROM posts WHERE approved = :approved ORDER BY ctime DESC';
 	}
-	$result = array();
+	if ($limit > 0 ) {
+	 $sql .= ' LIMIT :limit OFFSET :offset';
+	}
 
 	$stmt = $db->prepare($sql);
 	if ($approved !== null) {
 		$stmt->bindValue(':approved', $approved, PDO::PARAM_INT);
 	}
-	$stmt->bindParam(':limit', intval($limit), PDO::PARAM_INT);
-	$stmt->bindParam(':offset', intval($offset), PDO::PARAM_INT);
+	if ($limit > 0) {
+		$stmt->bindParam(':limit', intval($limit), PDO::PARAM_INT);
+		$stmt->bindParam(':offset', intval($offset), PDO::PARAM_INT);
+	}
 	if ($stmt->execute()) {
 		return $stmt->fetchAll(PDO::FETCH_OBJ);
 	}
@@ -56,20 +63,45 @@ function guestbook_create($entry) {
 	$stmt->bindValue(':message', $message, PDO::PARAM_STR);
 	$stmt->bindValue(':approved', 0, PDO::PARAM_INT);
 	
-	if ($stmt->execute()) return true;
+	if ($stmt->execute() && $stmt->rowCount() > 0) return true;
 	
 	debug($stmt);
 	return false;
 }
 
-function guestbook_set_approval($approval = 1) {
+function guestbook_set_approval($id = 0, $approval = 1) {
+	$db = option('db');
+	$sql = 'UPDATE posts SET approved = :approval WHERE `id` = :id';
+	
+	$stmt = $db->prepare($sql);
+	$stmt->bindParam(':id', intval($id), PDO::PARAM_INT);
+	$stmt->bindParam(':approval', intval($approval), PDO::PARAM_INT);
+	if ($stmt->execute()) {
+		return true;
+	}
 
+	debug($stmt);
+	return false;		
 }
 
-function guestbook_approve() {
-
+function guestbook_approve($id = 0) {
+	return guestbook_set_approval($id, 1);
 }
 
-function guestbook_disapprove() {
+function guestbook_disapprove($id = 0) {
+	return guestbook_set_approval($id, -1);
+}
 
+function guestbook_delete($id = 0) {
+	$db = option('db');
+	$sql = 'DELETE FROM posts WHERE id = :id';
+	
+	$stmt = $db->prepare($sql);
+	$stmt->bindParam(':id', intval($id), PDO::PARAM_INT);
+	if ($stmt->execute()) {
+		return true;
+	}
+
+	debug($stmt);
+	return false;		
 }
