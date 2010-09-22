@@ -1,0 +1,1 @@
+<?=render('guestbook/list.html.php', null, array('entries' => $entries))?>
