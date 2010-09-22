@@ -8,11 +8,16 @@
 </head>
 <body>
 <h1>Guestbook</h1>
+<ul id="nav">
+<li><a href="<?=$prev === null ? '#' : url_for($prev)?>">Previous</a></li>
+<li><a href="<?=url_for('new')?>">Create a new post</a></li>
+<li><a href="<?=$next === null ? '#' : url_for($next)?>">Next</a></li>
+</ul>
 <div id="content">
 <?= $content; ?>
 </div>
 <hr>
-<p id="nav">
+<p>
 <a href="<?=url_for('new')?>">Create a new post</a>
 </p>
 </body>

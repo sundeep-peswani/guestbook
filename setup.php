@@ -19,13 +19,14 @@ set_error_handler('exceptions_error_handler');
 $localhost = preg_match('/^localhost(\:\d+)?/', $_SERVER['HTTP_HOST']);
 $env = $localhost ? ENV_DEVELOPMENT : ENV_PRODUCTION;
 
-$dsn = "sqlite2:db/guestbook.db";
+require_once('conf.php');
+$dsn = sprintf('mysql:host=%s;port=%u;dbname=%s', $host, $port, $dbname);
 try
 {
-	$db = new PDO($dsn);
+	$db = new PDO($dsn, $username, $password);
 	$db->setAttribute( PDO::ATTR_ERRMODE, PDO::ERRMODE_WARNING );
 	$db->exec(file_get_contents('db/schema.sql'));
-	$db->exec(file_get_contents('db/admin.sql'));
+	$db->exec(file_get_contents('db/setup.sql'));
 	if ($env == ENV_DEVELOPMENT) {
 		$db->exec(file_get_contents('db/temp-data.sql'));
 	}	

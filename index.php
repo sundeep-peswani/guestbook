@@ -121,14 +121,20 @@ dispatch_post('/new', 'guestbook_new_entry');
 		return html('guestbook/new.html.php');
 }
 	
-dispatch(array('/', '/:page'), 'guestbook_index');
+dispatch('/', 'guestbook_index');
+dispatch('/:page', 'guestbook_index');
 	function guestbook_index() {
 		$page = 1;
 		if (params('page')) {
 			$page = params('page');
 		}
 		$length = option('setting_page_length');
-		$offset = ($page - 1) * $length;
+		$offset = max(0, $page - 1) * $length;
+		$total = guestbook_count_approved();
+		if ($offset >= $total) {
+			$offset = 0;
+		}
+		
 		$entries = guestbook_load_approved($length, $offset);
 		
 		if (empty($entries)) {
@@ -137,7 +143,16 @@ dispatch(array('/', '/:page'), 'guestbook_index');
 			}
 			redirect_to('/');
 		}
+		
 		set('entries', $entries);
+		set('prev', $page-1);
+		set('next', $page+1);
+		if ($page == 1) {
+			set('prev', null);
+		}
+		if ($total <= $page * $length) {
+			set('next', null);
+		}
 		return html('guestbook/index.html.php');
 	}
 

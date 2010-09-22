@@ -51,6 +51,21 @@ function guestbook_load_disapproved($limit = 10, $offset = 0) {
 	return guestbook_load(-1, $limit, $offset);
 }
 
+function guestbook_count_approved() {
+	$db = option('db');
+	
+	$sql = 'SELECT COUNT(*) FROM posts WHERE approved > :approved';
+	$stmt = $db->prepare($sql);
+	$stmt->bindValue(':approved', 0, PDO::PARAM_INT);
+	
+	if ($stmt->execute()) {
+		return array_pop($stmt->fetch(PDO::FETCH_NUM));
+	}
+	
+	debug($stmt);
+	return false;	
+}
+
 function guestbook_create($entry) {
 	$db = option('db');
 	
